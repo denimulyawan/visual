@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Visual — Ubah Data Angka Jadi Diagram Otomatis</title>
+<meta name="description" content="Tempel atau ketik data angka, langsung jadi diagram. 13 jenis visual: batang, garis, area, pie, donut, radar, scatter, bubble, heatmap, treemap, gauge, funnel, stacked." />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cg fill='%23fff'%3E%3Crect x='7' y='16' width='4.5' height='9' rx='1.5'/%3E%3Crect x='13.75' y='10' width='4.5' height='15' rx='1.5'/%3E%3Crect x='20.5' y='6' width='4.5' height='19' rx='1.5'/%3E%3C/g%3E%3C/svg%3E" />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="30" height="30"><rect width="32" height="32" rx="9" fill="currentColor"/><g fill="#fff"><rect x="6.5" y="16.5" width="4.6" height="9" rx="1.6"/><rect x="13.7" y="10" width="4.6" height="15.5" rx="1.6"/><rect x="20.9" y="5.5" width="4.6" height="20" rx="1.6"/></g></svg>
+    </span>
+    <div class="brand-text">
+      <h1>Visual</h1>
+      <p>Masukkan data angka &rarr; langsung jadi diagram</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button id="btnTheme" class="btn btn-ghost" type="button" title="Ganti tema terang/gelap">
+      <span class="ico" id="icoTheme">🌙</span><span class="lbl">Gelap</span>
+    </button>
+    <a class="btn btn-ghost" href="https://github.com/denimulyawan/visual" target="_blank" rel="noopener">
+      <span class="ico">★</span><span class="lbl">GitHub</span>
+    </a>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ KOLOM KIRI: INPUT DATA ============ -->
+  <section class="panel panel-input" aria-labelledby="hData">
+    <div class="panel-head">
+      <h2 id="hData"><span class="step">1</span> Data</h2>
+      <div class="tabbar" role="tablist" aria-label="Mode input data">
+        <button class="tab is-active" role="tab" data-tab="paste" aria-selected="true">Tempel / Ketik</button>
+        <button class="tab" role="tab" data-tab="table" aria-selected="false">Tabel</button>
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <!-- Mode tempel -->
+      <div class="tabpane is-active" data-pane="paste">
+        <p class="hint">
+          Tempel data dari Excel / Google Sheets, atau ketik manual.
+          Pemisah: <b>Tab</b>, <b>koma</b>, <b>titik koma</b>, atau <b>|</b>.
+          Baris pertama jadi nama kolom.
+        </p>
+        <textarea id="inputText" class="input-text" spellcheck="false" rows="12"
+          placeholder="Contoh:&#10;Bulan,Penjualan,Target&#10;Jan,120,100&#10;Feb,185,150&#10;Mar,164,150&#10;Apr,210,180"></textarea>
+        <div class="row row-wrap gap-sm">
+          <button class="btn btn-primary" id="btnRender" type="button">Tampilkan Visual <kbd>Ctrl</kbd>+<kbd>Enter</kbd></button>
+          <button class="btn" id="btnClear" type="button">Bersihkan</button>
+          <label class="btn btn-file">
+            Muat CSV
+            <input type="file" id="fileCsv" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
+          </label>
+        </div>
+      </div>
+
+      <!-- Mode tabel -->
+      <div class="tabpane" data-pane="table">
+        <p class="hint">Klik sel untuk mengedit. Tekan <kbd>Tab</kbd> untuk pindah sel. Baris pertama = nama kolom.</p>
+        <div class="table-wrap" id="gridWrap"></div>
+        <div class="row row-wrap gap-sm">
+          <button class="btn" id="btnAddRow" type="button">+ Baris</button>
+          <button class="btn" id="btnAddCol" type="button">+ Kolom</button>
+          <button class="btn" id="btnDelRow" type="button">&minus; Baris</button>
+          <button class="btn" id="btnDelCol" type="button">&minus; Kolom</button>
+        </div>
+      </div>
+
+      <div class="field-grid">
+        <label class="field">
+          <span>Format angka</span>
+          <select id="selLocale">
+            <option value="auto">Deteksi otomatis (1.234,56 atau 1,234.56)</option>
+            <option value="id">Indonesia — 1.234,56</option>
+            <option value="us">Inggris — 1,234.56</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Contoh data</span>
+          <select id="selSample">
+            <option value="">— pilih contoh —</option>
+            <option value="penjualan">Penjualan bulanan (2 seri)</option>
+            <option value="kategori">Penjualan per kategori (1 seri)</option>
+            <option value="suhu">Suhu 2 kota (garis)</option>
+            <option value="populasi">Populasi kota (bar horizontal)</option>
+            <option value="pangsa">Pangsa pasar (pie/donut)</option>
+            <option value="nilai">Nilai ujian per kelas (radar)</option>
+            <option value="tinggi">Tinggi vs berat siswa (scatter)</option>
+            <option value="kunjungan">Kunjungan web per jam (area)</option>
+            <option value="kepadatan">Kepadatan transaksi (heatmap)</option>
+            <option value="anggaran">Anggaran divisi (treemap)</option>
+            <option value="target">Pencapaian target (gauge)</option>
+            <option value="funnel">Corong penjualan (funnel)</option>
+            <option value="angka">Deret angka polos (1 kolom)</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="parseStatus" class="status" role="status" aria-live="polite"></div>
+
+      <details class="faq">
+        <summary>Cara penulisan data</summary>
+        <ul>
+          <li><b>1 kolom</b> angka &rarr; tiap angka jadi satu batang dengan label 1, 2, 3, …</li>
+          <li><b>2 kolom</b>: kolom 1 label/kategori, kolom 2 nilai.</li>
+          <li><b>3+ kolom</b>: kolom 1 label, kolom sisanya beberapa seri (multi-warna).</li>
+          <li><b>Semua angka</b>: kolom 1 dianggap sumbu X (untuk scatter/bubble), sisanya seri Y.</li>
+          <li>Nilai boleh: <code>Rp 1.500.000</code>, <code>12,5%</code>, <code>(250)</code> = negatif, <code>1,2 jt</code> = 1.200.000.</li>
+        </ul>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ KOLOM KANAN: OUTPUT VISUAL ============ -->
+  <section class="panel panel-output" aria-labelledby="hVisual">
+    <div class="panel-head">
+      <h2 id="hVisual"><span class="step">2</span> Pilih Visual</h2>
+      <button class="btn btn-ghost" id="btnOptions" type="button" aria-expanded="false">⚙ Opsi</button>
+    </div>
+
+    <div class="panel-body">
+      <div class="chartpicker" id="chartPicker" role="tablist" aria-label="Jenis visual"></div>
+
+      <div class="options" id="optionsPanel" hidden>
+        <div class="field-grid">
+          <label class="field"><span>Judul diagram</span>
+            <input type="text" id="optTitle" placeholder="(opsional)" />
+          </label>
+          <label class="field"><span>Label sumbu X</span>
+            <input type="text" id="optXLabel" placeholder="(opsional)" />
+          </label>
+          <label class="field"><span>Label sumbu Y</span>
+            <input type="text" id="optYLabel" placeholder="(opsional)" />
+          </label>
+          <label class="field"><span>Palet warna</span>
+            <select id="optPalette"></select>
+          </label>
+          <label class="field"><span>Urutkan data</span>
+            <select id="optSort">
+              <option value="none">Sesuai data</option>
+              <option value="desc">Terbesar &rarr; terkecil</option>
+              <option value="asc">Terkecil &rarr; terbesar</option>
+              <option value="label">Nama A &rarr; Z</option>
+            </select>
+          </label>
+          <label class="field"><span>Mode batang</span>
+            <select id="optBarMode">
+              <option value="grouped">Berdampingan</option>
+              <option value="stacked">Bertumpuk</option>
+              <option value="percent">Bertumpuk 100%</option>
+            </select>
+          </label>
+          <label class="field"><span>Format angka label</span>
+            <select id="optNum">
+              <option value="auto">Otomatis (1,2 jt)</option>
+              <option value="full">Penuh (1.200.000)</option>
+            </select>
+          </label>
+          <label class="field"><span>Ketebalan garis</span>
+            <input type="range" id="optStroke" min="1" max="6" step="0.5" value="2.5" />
+          </label>
+        </div>
+        <div class="switches">
+          <label class="switch"><input type="checkbox" id="optLegend" checked /><span>Legenda</span></label>
+          <label class="switch"><input type="checkbox" id="optValues" /><span>Label nilai</span></label>
+          <label class="switch"><input type="checkbox" id="optGrid" checked /><span>Garis bantu</span></label>
+          <label class="switch"><input type="checkbox" id="optSmooth" checked /><span>Garis melengkung</span></label>
+          <label class="switch"><input type="checkbox" id="optAnim" checked /><span>Animasi</span></label>
+        </div>
+      </div>
+
+      <figure class="chart-card">
+        <div class="chart-toolbar">
+          <div class="chart-name" id="chartName">Diagram Batang</div>
+          <div class="row gap-sm">
+            <button class="btn btn-sm" id="btnPng" type="button">⬇ PNG</button>
+            <button class="btn btn-sm" id="btnSvg" type="button">⬇ SVG</button>
+            <button class="btn btn-sm" id="btnCsv" type="button">⬇ CSV</button>
+            <button class="btn btn-sm" id="btnCopy" type="button">⧉ Salin</button>
+          </div>
+        </div>
+        <div class="chart-stage" id="chartStage">
+          <div class="chart-empty" id="chartEmpty">
+            <div class="empty-art" aria-hidden="true">📊</div>
+            <p><b>Belum ada data.</b><br />Tempel angka di panel kiri, atau pilih salah satu <b>Contoh data</b>.</p>
+          </div>
+        </div>
+      </figure>
+
+      <div class="subpanel">
+        <h3><span class="step">3</span> Statistik</h3>
+        <div class="table-wrap" id="statsWrap"></div>
+      </div>
+
+      <div class="subpanel">
+        <h3>Tabel Data Terbaca</h3>
+        <div class="table-wrap" id="dataWrap"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="tip" class="tip" role="tooltip" aria-hidden="true"></div>
+
+<footer class="footer">
+  <span>Visual &mdash; dibuat untuk mengubah data angka menjadi diagram secara instan.</span>
+  <span>Semua proses berjalan di browser Anda. Data tidak dikirim ke mana pun.</span>
+</footer>
+
+<script src="assets/js/parse.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

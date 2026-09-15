@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Galeri Visual — semua jenis diagram</title>
+<link rel="stylesheet" href="../assets/css/style.css" />
+<style>
+  .gal-head { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; padding: 16px clamp(14px,3vw,34px); border-bottom:1px solid var(--border); background: var(--surface); }
+  .gal-head h1 { font-size:1.15rem; }
+  .gal-head p { margin:2px 0 0; font-size:.82rem; color: var(--text-2); }
+  .gal { display:grid; grid-template-columns:repeat(auto-fit,minmax(430px,1fr)); gap:16px; padding: clamp(14px,2vw,26px) clamp(14px,3vw,34px) 40px; }
+  .cell { border:1px solid var(--border); border-radius:var(--radius); background: var(--surface); overflow:hidden; box-shadow: var(--shadow-sm); }
+  .cap { font: 700 12px/1.4 var(--sans); letter-spacing:.04em; text-transform:uppercase; color: var(--accent); padding:10px 14px; border-bottom:1px solid var(--border); background: var(--surface-2); }
+  .cell svg { display:block; width:100%; height:auto; }
+  a.back { font-size:.85rem; font-weight:600; color: var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+<header class="gal-head">
+  <div>
+    <h1>Galeri Visual</h1>
+    <p>Semua 13 jenis diagram digambar memakai data yang sama, untuk membandingkan tampilannya.</p>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a class="back" href="../index.html">&larr; Kembali ke aplikasi</a>
+    <button class="btn btn-sm" id="btnTema" type="button">🌙 Ganti tema</button>
+  </div>
+</header>
+
+<div class="gal" id="gal"></div>
+
+<script src="../assets/js/parse.js"></script>
+<script src="../assets/js/charts.js"></script>
+<script>
+(function () {
+  'use strict';
+  var P = window.VisualParse, C = window.VisualCharts;
+
+  var DS = {
+    penjualan: 'Bulan\tPenjualan\tTarget\nJan\t120\t100\nFeb\t185\t150\nMar\t164\t150\nApr\t210\t180\nMei\t198\t190\nJun\t245\t200\nJul\t232\t210\nAgu\t268\t220',
+    kategori: 'Kategori\tPenjualan\nMakanan\t420\nMinuman\t315\nSnack\t268\nRumah Tangga\t190\nPerawatan Diri\t142\nElektronik\t96',
+    populasi: 'Kota\tPopulasi\nJakarta\t10560000\nSurabaya\t2874000\nBandung\t2507000\nMedan\t2435000\nSemarang\t1659000\nMakassar\t1424000\nPalembang\t1668000\nDenpasar\t725000',
+    radar: 'Kelas\tMatematika\tB. Indonesia\tIPA\tIPS\n7A\t82\t78\t75\t80\n7B\t76\t85\t72\t78\n7C\t88\t80\t85\t74\n7D\t71\t74\t68\t83',
+    scatter: 'Tinggi\tBerat\n150\t45\n155\t48\n158\t52\n160\t55\n162\t54\n165\t60\n168\t63\n170\t66\n172\t68\n175\t72\n178\t75\n180\t80\n183\t85\n185\t88',
+    bubble: 'Umur\tPendapatan\tBelanja\n22\t45\t12\n27\t52\t18\n31\t61\t25\n35\t58\t31\n40\t72\t44\n45\t68\t38\n50\t81\t52\n55\t76\t47',
+    kepadatan: 'Hari\tPagi\tSiang\tSore\tMalam\nSenin\t120\t340\t280\t90\nSelasa\t140\t380\t310\t110\nRabu\t135\t420\t295\t105\nKamis\t150\t400\t330\t125\nJumat\t180\t460\t390\t160\nSabtu\t260\t520\t480\t240\nMinggu\t310\t580\t520\t280',
+    anggaran: 'Divisi\tAnggaran\nOperasional\t4200\nTeknologi\t3600\nPemasaran\t2800\nSDM\t1800\nKeuangan\t1500\nRiset\t1200\nUmum\t900\nLegal\t600',
+    target: 'Metrik\tNilai\tTarget\nPencapaian\t78\t100',
+    funnel: 'Tahap\tJumlah\nKunjungan\t12000\nTambah Keranjang\t4200\nCheckout\t1850\nPembayaran\t1120\nSelesai\t940',
+    suhu: 'Bulan\tJakarta\tBandung\nJan\t28\t22\nFeb\t28,5\t22\nMar\t29\t23\nApr\t30\t23\nMei\t30\t24\nJun\t30\t23\nJul\t30\t23\nAgu\t31\t24'
+  };
+
+  var PLAN = [
+    ['bar', 'penjualan', 'Batang — perbandingan antar kategori'],
+    ['hbar', 'populasi', 'Batang horizontal — nama kategori panjang'],
+    ['line', 'suhu', 'Garis — tren dari waktu ke waktu'],
+    ['area', 'penjualan', 'Area bertumpuk — tren sekaligus volume'],
+    ['pie', 'kategori', 'Pie — porsi terhadap keseluruhan'],
+    ['donut', 'kategori', 'Donat — porsi dengan total di tengah'],
+    ['radar', 'radar', 'Radar — beberapa indikator sekaligus'],
+    ['scatter', 'scatter', 'Sebaran — hubungan dua variabel'],
+    ['bubble', 'bubble', 'Gelembung — tiga variabel sekaligus'],
+    ['heatmap', 'kepadatan', 'Peta panas — pola pada matriks data'],
+    ['treemap', 'anggaran', 'Treemap — komposisi menurut ukuran'],
+    ['gauge', 'target', 'Gauge — pencapaian terhadap target'],
+    ['funnel', 'funnel', 'Corong — tahapan yang menyusut']
+  ];
+
+  var dark = false;
+
+  function tema() {
+    var cs = getComputedStyle(document.documentElement);
+    var v = function (n) { return cs.getPropertyValue(n).trim(); };
+    return {
+      text: v('--text'), text2: v('--text-2'), text3: v('--text-3'),
+      border: v('--border'), borderStrong: v('--border-strong'),
+      surface: v('--surface'), surface2: v('--surface-2'), surface3: v('--surface-3')
+    };
+  }
+
+  function gambar() {
+    var gal = document.getElementById('gal');
+    gal.innerHTML = '';
+    PLAN.forEach(function (item) {
+      var type = item[0], key = item[1], caption = item[2];
+      var o = {
+        title: '', xLabel: '', yLabel: '', palette: 'ocean',
+        legend: true, values: false, grid: true, smooth: true, anim: true,
+        barMode: type === 'area' ? 'stacked' : 'grouped',
+        sort: 'none', numMode: 'auto', stroke: 2.5, dark: dark, theme: tema()
+      };
+      var parsed = P.parseTable(DS[key], 'auto');
+      var out;
+      try { out = C.render(type, P.applyOptions(parsed, o), o); }
+      catch (e) { out = { svg: document.createElement('div'), name: 'Gagal: ' + e.message }; }
+
+      var cell = document.createElement('div');
+      cell.className = 'cell';
+      var cap = document.createElement('div');
+      cap.className = 'cap';
+      cap.textContent = caption;
+      cell.appendChild(cap);
+      cell.appendChild(out.svg);
+      gal.appendChild(cell);
+    });
+  }
+
+  document.getElementById('btnTema').addEventListener('click', function () {
+    dark = !dark;
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    this.textContent = dark ? '☀ Ganti tema' : '🌙 Ganti tema';
+    gambar();
+  });
+
+  gambar();
+})();
+</script>
+</body>
+</html>
