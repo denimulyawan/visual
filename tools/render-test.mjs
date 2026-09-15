@@ -206,6 +206,35 @@ check('csv-kutip', JSON.stringify(P.splitLine('a,"b,c",d', ',')) === JSON.string
 const st = P.stats([1, 2, 3, 4]);
 check('statistik', st && st.sum === 10 && st.mean === 2.5 && st.median === 2.5 && st.min === 1 && st.max === 4, JSON.stringify(st));
 
+/* ---------- judul: harus selalu muat di kanvas ---------- */
+function walk(n, fn) {
+  if (!n || typeof n === 'string') return;
+  fn(n);
+  (n.children || []).forEach(c => walk(c, fn));
+}
+function findTitle(svg, prefix) {
+  let found = null;
+  walk(svg, n => {
+    if (n.tagName === 'text' && String(n.textContent).indexOf(prefix) === 0) found = n;
+  });
+  return found;
+}
+
+for (const len of [20, 60, 120, 200]) {
+  const title = ('Judul diagram yang sangat panjang sekali '.repeat(8)).slice(0, len);
+  const o = opts({ title });
+  const svg = C.render('bar', P.parseTable(DATASETS['satu seri'], 'auto'), o).svg;
+  const el = findTitle(svg, 'Judul diagram');
+  const label = el ? String(el.textContent) : '';
+  const size = el ? parseFloat(el.getAttribute('font-size')) : NaN;
+  check(`judul-${len}: tergambar`, !!el);
+  check(`judul-${len}: ukuran huruf wajar 11-20`, size >= 11 && size <= 20, 'font-size=' + size);
+  check(`judul-${len}: lebar perkiraan <= kanvas`,
+    label.length * size * 0.56 <= 1000 - 60, `perkiraan ${Math.round(label.length * size * 0.56)}px`);
+  check(`judul-${len}: tidak terpotong berlebihan`, label.length >= Math.min(len, 110), `panjang=${label.length}`);
+}
+check('judul kosong tidak digambar', !findTitle(C.render('bar', P.parseTable(DATASETS['satu seri'], 'auto'), opts({ title: '' })).svg, 'Judul'));
+
 const ns = P.niceScale(0, 97, 5);
 check('niceScale', ns.min <= 0 && ns.max >= 97 && ns.ticks.length >= 3, JSON.stringify(ns));
 

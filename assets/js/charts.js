@@ -173,8 +173,17 @@
       svg.appendChild(st);
     }
     if (opts.title) {
-      txt(svg, W / 2, 30, opts.title, {
-        'text-anchor': 'middle', 'font-size': 20, 'font-weight': 700, fill: opts.theme.text
+      // Perkecil ukuran huruf (lalu potong bila perlu) agar judul selalu muat.
+      var t = String(opts.title);
+      var maxW = W - 64, perChar = 0.56, fsMin = 11, fsMax = 20;
+      var fs = fsMax;
+      if (t.length * fs * perChar > maxW) {
+        fs = Math.max(fsMin, Math.min(fsMax, maxW / (t.length * perChar)));
+      }
+      var fit = Math.max(4, Math.floor(maxW / (fs * perChar)));
+      var label = t.length > fit ? t.slice(0, fit - 1) + '…' : t;
+      txt(svg, W / 2, 30, label, {
+        'text-anchor': 'middle', 'font-size': Math.round(fs * 10) / 10, 'font-weight': 700, fill: opts.theme.text
       });
     }
     return svg;

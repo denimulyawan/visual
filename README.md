@@ -4,7 +4,7 @@ Aplikasi web untuk mengubah data angka menjadi berbagai bentuk visual secara ins
 Cukup **tempel atau ketik** datanya, diagram langsung muncul. Tanpa build step, tanpa
 dependensi eksternal, tanpa server — semuanya berjalan di browser.
 
-**Demo langsung:** <https://denimulyawan.github.io/visual/>
+Buka `index.html` untuk mulai memakai.
 
 ---
 
@@ -29,10 +29,10 @@ dependensi eksternal, tanpa server — semuanya berjalan di browser.
 
 ## Cara memakai
 
-1. Buka `index.html` (atau halaman demo).
+1. Buka `index.html`.
 2. Masukkan data di panel kiri — tempel dari Excel, ketik manual, atau muat berkas CSV.
 3. Pilih jenis visual di panel kanan.
-4. Atur tampilan lewat tombol **⚙ Opsi**, lalu unduh hasilnya.
+4. Atur tampilan (termasuk **judul diagram**) lewat tombol **⚙ Opsi**, lalu unduh hasilnya.
 
 Belum punya data? Pilih salah satu **Contoh data** di panel kiri.
 
