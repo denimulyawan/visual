@@ -191,7 +191,11 @@
 
   function legendItems(series, opts, prefix) {
     return series.map(function (s, i) {
-      return { name: (prefix ? prefix + ' ' : '') + s.name, color: colorAt(i, opts) };
+      return {
+        name: (prefix ? prefix + ' ' : '') + s.name,
+        color: colorOf(s, i, opts),
+        ci: (s && s.ci !== undefined) ? s.ci : i
+      };
     });
   }
 
@@ -214,9 +218,25 @@
       row.forEach(function (it) { total += 16 + 8 + String(it.name).length * 6.9 + 22; });
       var x = (W - total) / 2;
       row.forEach(function (it) {
-        add(svg, 'rect', { x: num(x), y: num(y - 9), width: 12, height: 12, rx: 3.5, fill: it.color });
-        var t = txt(svg, num(x + 19), num(y + 1.5), it.name, { 'font-size': 13, fill: theme.text2 });
-        x += 16 + 8 + String(it.name).length * 6.9 + 22;
+        var iw = 16 + 8 + String(it.name).length * 6.9 + 22;
+        var g = add(svg, 'g', {
+          'data-series': it.ci,
+          'data-legend': '1',
+          opacity: it.off ? 0.42 : 1,
+          style: 'cursor:pointer',
+          role: 'button',
+          tabindex: 0
+        });
+        var title = add(g, 'title', {});
+        title.textContent = it.off ? 'Klik untuk menampilkan ' + it.name : 'Klik untuk menyembunyikan ' + it.name;
+        if (it.off) {
+          add(g, 'rect', { x: num(x), y: num(y - 9), width: 12, height: 12, rx: 3.5, fill: theme.surface, stroke: it.color, 'stroke-width': 2 });
+        } else {
+          add(g, 'rect', { x: num(x), y: num(y - 9), width: 12, height: 12, rx: 3.5, fill: it.color });
+        }
+        txt(g, num(x + 19), num(y + 1.5), it.name, { 'font-size': 13, fill: theme.text2 });
+        add(g, 'rect', { x: num(x - 5), y: num(y - 13), width: num(iw + 8), height: 23, fill: 'transparent' });
+        x += iw;
       });
       y += 22;
     });
@@ -259,7 +279,7 @@
     }
     add(f.svg, 'line', { x1: p.x, x2: p.x, y1: p.y, y2: p.y + p.h, stroke: th.borderStrong, 'stroke-width': 1 });
     scale.ticks.forEach(function (t) {
-      txt(f.svg, p.x - 11, num(yFor(t) + 4.2), P.formatCompact(t), { 'text-anchor': 'end', 'font-size': 12, fill: th.text3 });
+      txt(f.svg, p.x - 11, num(yFor(t) + 4.2), tickFmt(t), { 'text-anchor': 'end', 'font-size': 12, fill: th.text3 });
     });
     if (f.opts.yLabel) {
       txt(f.svg, 20, p.y + p.h / 2, f.opts.yLabel, {
@@ -283,7 +303,7 @@
     }
     add(f.svg, 'line', { x1: p.x, x2: p.x + p.w, y1: p.y + p.h, y2: p.y + p.h, stroke: th.borderStrong, 'stroke-width': 1 });
     scale.ticks.forEach(function (t) {
-      txt(f.svg, num(xFor(t)), p.y + p.h + 20, P.formatCompact(t), { 'text-anchor': 'middle', 'font-size': 12, fill: th.text3 });
+      txt(f.svg, num(xFor(t)), p.y + p.h + 20, tickFmt(t), { 'text-anchor': 'middle', 'font-size': 12, fill: th.text3 });
     });
     if (f.opts.xLabel) {
       txt(f.svg, p.x + p.w / 2, p.y + p.h + 48, f.opts.xLabel, {
@@ -351,7 +371,27 @@
     });
   }
 
-  var fmt = function (v) { return P.formatNumber(v); };
+  /* Opsi render yang sedang aktif. Render berjalan sinkron, sehingga variabel
+     ini aman dipakai oleh fungsi format di bawah. */
+  var CUR = null;
+
+  /** Format nilai (label nilai, tooltip) — mengikuti satuan & desimal pengguna. */
+  function fmt(v) {
+    if (CUR && CUR.fmt && CUR.fmt.value) return CUR.fmt.value(v);
+    return P.formatNumber(v);
+  }
+
+  /** Format ringkas untuk label sumbu & angka di dalam kanvas. */
+  function tickFmt(v) {
+    if (CUR && CUR.fmt && CUR.fmt.tick) return CUR.fmt.tick(v);
+    return P.formatCompact(v);
+  }
+
+  /** Warna seri selalu mengikuti indeks aslinya (ci), bukan urutan tampil,
+      supaya warna tidak berpindah saat ada seri yang disembunyikan. */
+  function colorOf(s, i, opts) {
+    return colorAt((s && s.ci !== undefined) ? s.ci : i, opts);
+  }
 
   /* ============================================================
      BATANG (vertikal) — grouped / stacked / percent
@@ -361,7 +401,7 @@
     var percent = opts.barMode === 'percent';
     var labels = data.labels, series = data.series;
     var plan = catLabelPlan(labels, W - 120);
-    var f = frame(opts, legendItems(series, opts), { bottom: bottomPad(plan, !!opts.xLabel) });
+    var f = frame(opts, data.legend || legendItems(series, opts), { bottom: bottomPad(plan, !!opts.xLabel) });
     var p = f.plot, th = f.theme;
     var n = labels.length, m = series.length;
 
@@ -408,7 +448,7 @@
           var tot = totals[ci];
           drawVal = tot ? (val / tot) * 100 : 0;
         }
-        var color = colorAt(si, opts);
+        var color = colorOf(series[si], si, opts);
         var x, yTop, hgt;
         if (stacked) {
           x = baseX;
@@ -431,7 +471,7 @@
         path.style.cursor = 'pointer';
 
         if (opts.values) {
-          var showTxt = percent ? (Math.round((val / (totals[ci] || 1)) * 1000) / 10) + '%' : P.formatSmart(val, opts.numMode === 'full');
+          var showTxt = percent ? (Math.round((val / (totals[ci] || 1)) * 1000) / 10) + '%' : fmt(val);
           var small = barW < 46 || hgt < 20;
           if (stacked && hgt < 16 && !percent) { /* lewati label sempit */ }
           else {
@@ -460,7 +500,7 @@
     var longest = 0;
     labels.forEach(function (l) { longest = Math.max(longest, String(l).length); });
     var left = Math.max(90, Math.min(260, longest * 7.6 + 24));
-    var f = frame(opts, legendItems(series, opts), { left: left, bottom: bottomPad(null, !!opts.xLabel) });
+    var f = frame(opts, data.legend || legendItems(series, opts), { left: left, bottom: bottomPad(null, !!opts.xLabel) });
     var p = f.plot, th = f.theme;
     var n = labels.length, m = series.length;
     var ex = P.extent(series);
@@ -474,7 +514,7 @@
     }
     add(f.svg, 'line', { x1: p.x, x2: p.x, y1: p.y, y2: p.y + p.h, stroke: th.borderStrong, 'stroke-width': 1 });
     scale.ticks.forEach(function (t) {
-      txt(f.svg, num(xFor(t)), p.y + p.h + 20, P.formatCompact(t), { 'text-anchor': 'middle', 'font-size': 12, fill: th.text3 });
+      txt(f.svg, num(xFor(t)), p.y + p.h + 20, tickFmt(t), { 'text-anchor': 'middle', 'font-size': 12, fill: th.text3 });
     });
     if (opts.xLabel) txt(f.svg, p.x + p.w / 2, p.y + p.h + 48, opts.xLabel, { 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 600, fill: th.text2 });
     if (opts.yLabel) txt(f.svg, 20, p.y + p.h / 2, opts.yLabel, { 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 600, fill: th.text2, transform: 'rotate(-90 20 ' + num(p.y + p.h / 2) + ')' });
@@ -500,12 +540,12 @@
         if (opts.anim) g.setAttribute('style', 'animation-delay:' + Math.min(600, i * 26 + j * 40) + 'ms');
         var bar = add(g, 'path', {
           d: roundRightRect(rx, y, Math.max(0.6, rw), Math.max(0.6, barH - (m > 1 ? barH * 0.12 : barH * 0.1)), radius),
-          fill: colorAt(j, opts)
+          fill: colorOf(series[j], j, opts)
         });
         bar.setAttribute('data-tip', tip(labels[i], series[j].name, fmt(v)));
         bar.style.cursor = 'pointer';
         if (opts.values) {
-          txt(f.svg, num(x1 + 8), num(y + barH / 2 + 4), P.formatSmart(v, opts.numMode === 'full'), {
+          txt(f.svg, num(x1 + 8), num(y + barH / 2 + 4), fmt(v), {
             'text-anchor': 'start', 'font-size': 11, 'font-weight': 700, fill: th.text
           });
         }
@@ -524,7 +564,7 @@
     var n = labels.length, m = series.length;
     var numericX = !!(xv && xv.length === n);
     var plan = numericX ? null : catLabelPlan(labels, W - 120);
-    var f = frame(opts, legendItems(series, opts), { bottom: bottomPad(plan, !!opts.xLabel) });
+    var f = frame(opts, data.legend || legendItems(series, opts), { bottom: bottomPad(plan, !!opts.xLabel) });
     var p = f.plot, th = f.theme;
 
     var xs = [];
@@ -590,7 +630,7 @@
             basePts.push(typeof bv === 'number' && isFinite(bv) ? [xs[h3], yFor(bv)] : [xs[h3], yFor(0)]);
           }
         }
-        var color = colorAt(s2, opts);
+        var color = colorOf(series[s2], s2, opts);
         segs.forEach(function (sg) {
           var top = (opts.smooth && sg.length > 2) ? smoothPath(sg) : linePath(sg);
           var d;
@@ -612,7 +652,7 @@
 
     // garis + titik
     for (var s3 = 0; s3 < m; s3++) {
-      var color3 = colorAt(s3, opts);
+      var color3 = colorOf(series[s3], s3, opts);
       var pts3 = [];
       for (var h4 = 0; h4 < n; h4++) {
         var v3 = seriesValues[s3][h4];
@@ -637,7 +677,7 @@
         c.style.cursor = 'pointer';
         if (opts.values && n <= 24) {
           var orig = series[s3].values[idx];
-          txt(f.svg, num(pt[0]), num(pt[1] - 12), P.formatSmart(orig, opts.numMode === 'full'), {
+          txt(f.svg, num(pt[0]), num(pt[1] - 12), fmt(orig), {
             'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 700, fill: th.text
           });
         }
@@ -687,7 +727,7 @@
     });
 
     if (donut) {
-      txt(f.svg, cx, cy - 2, P.formatCompact(total), { 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: th.text });
+      txt(f.svg, cx, cy - 2, tickFmt(total), { 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: th.text });
       txt(f.svg, cx, cy + 20, 'Total', { 'text-anchor': 'middle', 'font-size': 12.5, fill: th.text2 });
     }
 
@@ -699,7 +739,7 @@
       var y = ly + i * 22;
       add(f.svg, 'rect', { x: num(lx), y: num(y - 9), width: 12, height: 12, rx: 3.5, fill: it.color });
       txt(f.svg, num(lx + 19), num(y + 1.5), String(it.name).length > 16 ? String(it.name).slice(0, 15) + '…' : String(it.name), { 'font-size': 12.5, fill: th.text2 });
-      txt(f.svg, num(lx + 152), num(y + 1.5), P.formatCompact(it.value) + ' · ' + Math.round(it.value / total * 1000) / 10 + '%', { 'font-size': 11.5, fill: th.text3 });
+      txt(f.svg, num(lx + 152), num(y + 1.5), tickFmt(it.value) + ' · ' + Math.round(it.value / total * 1000) / 10 + '%', { 'font-size': 11.5, fill: th.text3 });
     });
     if (legend.length > 14) {
       txt(f.svg, num(lx), num(ly + 14 * 22 + 1.5), '+ ' + (legend.length - 14) + ' lainnya', { 'font-size': 11.5, fill: th.text3 });
@@ -713,7 +753,7 @@
      ============================================================ */
   function chartRadar(data, opts) {
     var labels = data.labels, series = data.series;
-    var f = frame(opts, legendItems(series, opts));
+    var f = frame(opts, data.legend || legendItems(series, opts));
     var p = f.plot, th = f.theme;
     var n = labels.length, m = series.length;
     var cx = p.x + p.w / 2, cy = p.y + p.h / 2;
@@ -739,7 +779,7 @@
         d: 'M' + pts.map(function (q) { return q[0] + ',' + q[1]; }).join('L') + 'Z',
         fill: 'none', stroke: th.border, 'stroke-width': 1
       });
-      txt(f.svg, num(cx + 4), num(cy - rr + 3), P.formatCompact(t), { 'font-size': 10, fill: th.text3 });
+      txt(f.svg, num(cx + 4), num(cy - rr + 3), tickFmt(t), { 'font-size': 10, fill: th.text3 });
     });
     // sumbu
     for (var i2 = 0; i2 < n; i2++) {
@@ -752,7 +792,7 @@
     }
 
     for (var si = 0; si < m; si++) {
-      var color = colorAt(si, opts);
+      var color = colorOf(series[si], si, opts);
       var pts3 = [];
       for (var j = 0; j < n; j++) {
         var v = series[si].values[j];
@@ -812,7 +852,7 @@
 
     var maxSeries = bubble ? 1 : series.length;
     for (var s = 0; s < maxSeries; s++) {
-      var color = colorAt(s, opts);
+      var color = colorOf(series[s], s, opts);
       for (var i = 0; i < n; i++) {
         var y = series[s].values[i];
         if (typeof y !== 'number' || !isFinite(y)) continue;
@@ -827,7 +867,7 @@
         });
         if (opts.anim) c.setAttribute('style', 'animation-delay:' + Math.min(700, i * 18) + 'ms');
         var extra = sizes && series[1] ? series[1].name + ': ' + fmt(series[1].values[i]) : null;
-        c.setAttribute('data-tip', tip('X: ' + P.formatNumber(x), series[s].name, fmt(y), extra));
+        c.setAttribute('data-tip', tip('X: ' + fmt(x), series[s].name, fmt(y), extra));
         c.style.cursor = 'pointer';
         if (opts.values && n <= 20) {
           txt(f.svg, num(xFor(x)), num(yFor(y) - r - 5), String(labels[i]), { 'text-anchor': 'middle', 'font-size': 10, fill: th.text2 });
@@ -876,7 +916,7 @@
           rect.style.cursor = 'pointer';
         }
         if (opts.values && cw > 54 && ch > 26 && t !== null) {
-          txt(f.svg, num(p.x + cw * i + cw / 2), num(p.y + ch * j + ch / 2 + 4), P.formatCompact(v), {
+          txt(f.svg, num(p.x + cw * i + cw / 2), num(p.y + ch * j + ch / 2 + 4), tickFmt(v), {
             'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 700,
             fill: t > 0.55 ? '#ffffff' : th.text
           });
@@ -888,8 +928,8 @@
     // skala warna (di bawah, rata kanan agar tidak bertabrakan dengan label sumbu X)
     var bw = Math.min(220, p.w * 0.3);
     var bx = p.x + p.w - bw, by = xLabelY(f, plan);
-    txt(f.svg, bx, num(by - 7), P.formatCompact(ex.min), { 'font-size': 10.5, fill: th.text3 });
-    txt(f.svg, num(bx + bw), num(by - 7), P.formatCompact(ex.max), { 'text-anchor': 'end', 'font-size': 10.5, fill: th.text3 });
+    txt(f.svg, bx, num(by - 7), tickFmt(ex.min), { 'font-size': 10.5, fill: th.text3 });
+    txt(f.svg, num(bx + bw), num(by - 7), tickFmt(ex.max), { 'text-anchor': 'end', 'font-size': 10.5, fill: th.text3 });
     for (var k = 0; k < 40; k++) {
       add(f.svg, 'rect', {
         x: num(bx + bw * k / 40), y: num(by), width: num(bw / 40 + 0.6), height: 9,
@@ -933,7 +973,7 @@
         txt(g, num(r.x + 10), num(r.y + 22), String(r.item.label).length > Math.floor(r.w / 7.4) ? String(r.item.label).slice(0, Math.max(3, Math.floor(r.w / 7.4) - 1)) + '…' : String(r.item.label), {
           'font-size': 12.5, 'font-weight': 700, fill: '#ffffff'
         });
-        txt(g, num(r.x + 10), num(r.y + 40), P.formatCompact(r.item.value) + '  (' + Math.round(r.item.value / total * 1000) / 10 + '%)', {
+        txt(g, num(r.x + 10), num(r.y + 40), tickFmt(r.item.value) + '  (' + Math.round(r.item.value / total * 1000) / 10 + '%)', {
           'font-size': 11, fill: 'rgba(255,255,255,.85)'
         });
       }
@@ -1039,16 +1079,16 @@
 
     var vY = cy - R * 0.36;
     var fs = Math.max(24, Math.min(60, R * 0.30));
-    txt(f.svg, cx, num(vY), P.formatNumber(last), { 'text-anchor': 'middle', 'font-size': fs, 'font-weight': 700, fill: th.text });
+    txt(f.svg, cx, num(vY), fmt(last), { 'text-anchor': 'middle', 'font-size': fs, 'font-weight': 700, fill: th.text });
     var subY = vY + fs * 0.90 + 8;
-    txt(f.svg, cx, num(subY), (target !== null ? 'dari target ' + P.formatNumber(maxV) : ''), { 'text-anchor': 'middle', 'font-size': 13, fill: th.text2 });
+    txt(f.svg, cx, num(subY), (target !== null ? 'dari target ' + fmt(maxV) : ''), { 'text-anchor': 'middle', 'font-size': 13, fill: th.text2 });
 
     var pY = cy + R * 0.42;
     txt(f.svg, cx, num(pY), P.formatNumber(last / maxV * 100, { decimals: 1 }) + '%', { 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, fill: color });
     txt(f.svg, cx, num(pY + 24), String(labels[lastIdx] || ''), { 'text-anchor': 'middle', 'font-size': 13, fill: th.text2 });
 
     txt(f.svg, num(cx - R * 1.06), num(cy + 16), '0', { 'text-anchor': 'middle', 'font-size': 12, fill: th.text3 });
-    txt(f.svg, num(cx + R * 1.06), num(cy + 16), P.formatCompact(maxV), { 'text-anchor': 'middle', 'font-size': 12, fill: th.text3 });
+    txt(f.svg, num(cx + R * 1.06), num(cy + 16), tickFmt(maxV), { 'text-anchor': 'middle', 'font-size': 12, fill: th.text3 });
 
     return { svg: f.svg, name: 'Gauge Pencapaian' };
   }
@@ -1102,7 +1142,7 @@
       var inner = (y1 - y0) > 26;
       txt(f.svg, num(cx), num((y0 + y1) / 2 + (inner ? -1 : -3)), String(it.label), { 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 700, fill: '#ffffff' });
       if (inner) {
-        txt(f.svg, num(cx), num((y0 + y1) / 2 + 16), P.formatNumber(it.value), { 'text-anchor': 'middle', 'font-size': 12, fill: 'rgba(255,255,255,.9)' });
+        txt(f.svg, num(cx), num((y0 + y1) / 2 + 16), fmt(it.value), { 'text-anchor': 'middle', 'font-size': 12, fill: 'rgba(255,255,255,.9)' });
       }
     });
     return { svg: f.svg, name: 'Diagram Corong' };
@@ -1145,7 +1185,12 @@
 
   function render(type, data, opts) {
     var fn = RENDERERS[type] || RENDERERS.bar;
-    return fn(data, opts);
+    CUR = opts || {};
+    try {
+      return fn(data, opts);
+    } finally {
+      CUR = null;
+    }
   }
 
   global.VisualCharts = {

@@ -147,8 +147,16 @@
     opts = opts || {};
     if (v === null || v === undefined || !isFinite(v)) return '–';
     if (opts.compact) return formatCompact(v);
-    if (opts.decimals !== undefined) {
-      return idFmt ? idFmt.format(Number(v.toFixed(opts.decimals))) : String(Number(v.toFixed(opts.decimals)));
+    if (opts.decimals !== undefined && opts.decimals !== null) {
+      var d = Math.max(0, Math.min(8, Number(opts.decimals) || 0));
+      try {
+        return new Intl.NumberFormat('id-ID', {
+          minimumFractionDigits: d,
+          maximumFractionDigits: d
+        }).format(v);
+      } catch (e) {
+        return v.toFixed(d);
+      }
     }
     var abs = Math.abs(v);
     var dec = abs >= 1000 ? 0 : (abs >= 100 ? 1 : (abs >= 1 ? 2 : 3));

@@ -241,6 +241,55 @@ check('niceScale', ns.min <= 0 && ns.max >= 97 && ns.ticks.length >= 3, JSON.str
 const csv = P.toCSV(P.parseTable('A\tB\n1\t2\n3\t4', 'auto'), ',');
 check('toCSV', csv.indexOf('A,B') === 0 && csv.split('\r\n').length === 3, csv);
 
+/* ---------- legenda interaktif, warna seri, dan satuan ---------- */
+const OC = C.PALETTES.ocean.colors;
+
+{
+  const parsed = P.parseTable(DATASETS['multi (label + 3 seri)'], 'auto');
+  // Aplikasi mengirim daftar legenda lengkap + seri yang lolos filter saja.
+  const legend = parsed.series.map((s, i) => ({ name: s.name, color: OC[i], ci: i, off: i === 1 }));
+  const visible = [Object.assign({}, parsed.series[0], { ci: 0 }), Object.assign({}, parsed.series[2], { ci: 2 })];
+  const svg = C.render('bar', { labels: parsed.labels, xValues: parsed.xValues, series: visible, legend }, opts({})).svg;
+
+  const groups = [];
+  walk(svg, n => { if (n.getAttribute && n.getAttribute('data-legend')) groups.push(n); });
+  check('legenda: semua seri tetap terdaftar', groups.length === 3, 'dapat ' + groups.length);
+  check('legenda: entri tersembunyi diredupkan', groups.filter(g => g.getAttribute('opacity') === '0.42').length === 1);
+  check('legenda: tiap entri membawa data-series', groups.every(g => /^[0-9]+$/.test(g.getAttribute('data-series') || '')));
+
+  const fills = new Set();
+  walk(svg, n => { if (n.tagName === 'path' && n.getAttribute('fill')) fills.add(n.getAttribute('fill')); });
+  check('warna seri tidak bergeser saat seri tengah disembunyikan',
+    fills.has(OC[0]) && fills.has(OC[2]) && !fills.has(OC[1]), [...fills].join(' '));
+}
+
+{
+  const parsed = P.parseTable(DATASETS['satu seri'], 'auto');
+  const withFmt = opts({
+    values: true,
+    fmt: { value: v => 'Rp ' + Math.round(v), tick: v => 'Rp' + Math.round(v) }
+  });
+  const svg = C.render('bar', parsed, withFmt).svg;
+  let axisHit = false, valueHit = false;
+  walk(svg, n => {
+    if (n.tagName !== 'text') return;
+    const t = String(n.textContent);
+    if (t.indexOf('Rp') === 0 && t.indexOf(' ') === -1) axisHit = true;
+    if (t.indexOf('Rp ') === 0) valueHit = true;
+  });
+  check('satuan dipakai pada label sumbu', axisHit);
+  check('satuan dipakai pada label nilai', valueHit);
+}
+
+{
+  // tanpa opsi fmt: perilaku lama harus tetap sama
+  const parsed = P.parseTable(DATASETS['satu seri'], 'auto');
+  const svg = C.render('bar', parsed, opts({ values: true })).svg;
+  let anyRp = false;
+  walk(svg, n => { if (n.tagName === 'text' && String(n.textContent).indexOf('Rp') > -1) anyRp = true; });
+  check('tanpa satuan: tidak ada awalan tambahan', !anyRp);
+}
+
 /* ---------- hasil ---------- */
 console.log('\n' + '='.repeat(58));
 console.log(`  LULUS: ${pass}   GAGAL: ${fail}`);

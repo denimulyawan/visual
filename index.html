@@ -52,6 +52,8 @@
           placeholder="Contoh:&#10;Bulan,Penjualan,Target&#10;Jan,120,100&#10;Feb,185,150&#10;Mar,164,150&#10;Apr,210,180"></textarea>
         <div class="row row-wrap gap-sm">
           <button class="btn btn-primary" id="btnRender" type="button">Tampilkan Visual <kbd>Ctrl</kbd>+<kbd>Enter</kbd></button>
+          <button class="btn" id="btnUndo" type="button" title="Batalkan perubahan data (Ctrl+Z)" disabled>↶ Batal</button>
+          <button class="btn" id="btnRedo" type="button" title="Ulangi perubahan data (Ctrl+Y)" disabled>↷ Ulangi</button>
           <button class="btn" id="btnClear" type="button">Bersihkan</button>
           <label class="btn btn-file">
             Muat CSV
@@ -62,7 +64,7 @@
 
       <!-- Mode tabel -->
       <div class="tabpane" data-pane="table">
-        <p class="hint">Klik sel untuk mengedit. Tekan <kbd>Tab</kbd> untuk pindah sel. Baris pertama = nama kolom.</p>
+        <p class="hint">Klik sel untuk mengedit. Tekan <kbd>Tab</kbd> untuk pindah sel. Anda juga bisa <b>menempel blok data</b> dari Excel langsung ke sebuah sel. Baris pertama = nama kolom.</p>
         <div class="table-wrap" id="gridWrap"></div>
         <div class="row row-wrap gap-sm">
           <button class="btn" id="btnAddRow" type="button">+ Baris</button>
@@ -162,6 +164,21 @@
               <option value="full">Penuh (1.200.000)</option>
             </select>
           </label>
+          <label class="field"><span>Jumlah desimal</span>
+            <select id="optDecimals">
+              <option value="auto">Otomatis</option>
+              <option value="0">0 angka di belakang koma</option>
+              <option value="1">1 angka</option>
+              <option value="2">2 angka</option>
+              <option value="3">3 angka</option>
+            </select>
+          </label>
+          <label class="field"><span>Awalan satuan</span>
+            <input type="text" id="optPrefix" placeholder="mis. Rp " maxlength="12" />
+          </label>
+          <label class="field"><span>Akhiran satuan</span>
+            <input type="text" id="optSuffix" placeholder="mis. kg / %" maxlength="12" />
+          </label>
           <label class="field"><span>Ketebalan garis</span>
             <input type="range" id="optStroke" min="1" max="6" step="0.5" value="2.5" />
           </label>
@@ -172,13 +189,16 @@
           <label class="switch"><input type="checkbox" id="optGrid" checked /><span>Garis bantu</span></label>
           <label class="switch"><input type="checkbox" id="optSmooth" checked /><span>Garis melengkung</span></label>
           <label class="switch"><input type="checkbox" id="optAnim" checked /><span>Animasi</span></label>
+          <label class="switch" title="Hasil unduhan dipotong mengikuti isi diagram, bukan seluruh kanvas"><input type="checkbox" id="optCrop" checked /><span>Pangkas ruang kosong saat ekspor</span></label>
         </div>
+        <p class="hint" id="legendHint">Tip: klik nama seri di legenda untuk menyembunyikan atau menampilkannya kembali.</p>
       </div>
 
       <figure class="chart-card">
         <div class="chart-toolbar">
           <div class="chart-name" id="chartName">Diagram Batang</div>
           <div class="row gap-sm">
+            <button class="btn btn-sm" id="btnResetSeries" type="button" hidden>↺ Tampilkan semua seri</button>
             <button class="btn btn-sm" id="btnPng" type="button">⬇ PNG</button>
             <button class="btn btn-sm" id="btnSvg" type="button">⬇ SVG</button>
             <button class="btn btn-sm" id="btnCsv" type="button">⬇ CSV</button>

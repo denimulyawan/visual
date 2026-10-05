@@ -14,14 +14,18 @@ Buka `index.html` untuk mulai memakai.
 |---|---|
 | **13 jenis visual** | Batang, batang horizontal, garis, area, pie, donat, radar, sebaran, gelembung, peta panas, treemap, gauge, corong |
 | **Langsung tampil** | Diagram diperbarui begitu data diketik (tanpa tombol) |
-| **Tempel dari Excel** | Salin sel dari Excel / Google Sheets lalu tempel — pemisah Tab, koma, titik koma, dan `\|` dideteksi otomatis |
+| **Tempel dari Excel** | Salin sel dari Excel / Google Sheets lalu tempel — pemisah Tab, koma, titik koma, dan `\|` dideteksi otomatis. Bisa ditempel ke kotak teks **maupun langsung ke satu sel** di editor tabel |
 | **Editor tabel** | Mode tabel dengan sel yang bisa diedit, tombol tambah/hapus baris & kolom, navigasi Tab/Enter |
+| **Batal / Ulangi** | `Ctrl`+`Z` dan `Ctrl`+`Y` untuk membatalkan atau mengulangi perubahan data |
+| **Legenda interaktif** | Klik nama seri di legenda untuk menyembunyikan atau menampilkannya kembali; warna seri tidak ikut bergeser |
 | **Format angka fleksibel** | `Rp 1.500.000`, `1,234.56`, `1.234,56`, `12,5%`, `(250)` = negatif, `1,2 jt` = 1.200.000 |
+| **Satuan & desimal** | Awalan (mis. `Rp `) dan akhiran (mis. `kg`, `%`) serta jumlah angka di belakang koma, diterapkan ke label, tooltip, dan tabel |
 | **Pintar membaca data** | Deteksi baris judul, kolom label, kolom angka, dan kolom yang harus dilewati |
 | **8 palet warna** | Samudra, Senja, Rimba, Beri, Permen, Korporat, Monokrom, Neon — plus tema terang & gelap |
 | **Kustomisasi** | Judul, label sumbu, legenda, label nilai, garis bantu, urutan data, mode batang (berdampingan / bertumpuk / 100%), ketebalan garis, animasi |
 | **Statistik otomatis** | Jumlah, rata-rata, median, min, maks, simpangan baku, dan banyak data per seri |
-| **Ekspor** | PNG (2000×1120), SVG (vektor, bisa diedit), CSV, dan salin gambar ke clipboard |
+| **Ekspor** | PNG, SVG (vektor, bisa diedit), CSV, dan salin gambar ke clipboard |
+| **Pangkas otomatis** | Hasil unduhan dipotong mengikuti isi diagram, jadi tidak ada ruang kosong berlebih — bisa dimatikan lewat Opsi |
 | **Interaktif** | Tooltip berisi nilai saat kursor diarahkan ke elemen diagram |
 | **Pribadi** | Data tidak pernah dikirim ke mana pun; tersimpan lokal di browser Anda |
 
@@ -32,7 +36,8 @@ Buka `index.html` untuk mulai memakai.
 1. Buka `index.html`.
 2. Masukkan data di panel kiri — tempel dari Excel, ketik manual, atau muat berkas CSV.
 3. Pilih jenis visual di panel kanan.
-4. Atur tampilan (termasuk **judul diagram**) lewat tombol **⚙ Opsi**, lalu unduh hasilnya.
+4. Klik nama seri di legenda bila ingin menyembunyikan seri tertentu.
+5. Atur tampilan (termasuk **judul diagram** dan **satuan**) lewat tombol **⚙ Opsi**, lalu unduh hasilnya.
 
 Belum punya data? Pilih salah satu **Contoh data** di panel kiri.
 
@@ -128,13 +133,43 @@ tiga empat, gunakan pilihan **Format angka** untuk memastikan hasilnya.
 
 ---
 
+## Legenda interaktif
+
+Klik nama seri di legenda untuk menyembunyikannya, klik lagi untuk menampilkan kembali.
+Berguna untuk membandingkan sebagian seri tanpa mengubah datanya — nilainya tetap utuh.
+
+- Warna tiap seri **tidak bergeser** walau ada seri lain yang disembunyikan.
+- Seri terakhir tidak bisa disembunyikan; minimal satu seri harus tetap tampil.
+- Tombol **↺ Tampilkan semua seri** muncul di bilah diagram saat ada yang disembunyikan.
+
+---
+
+## Batal & ulangi
+
+Semua perubahan data masuk ke riwayat, baik yang diketik di kotak teks maupun yang
+ditempel atau diedit di tabel.
+
+| Tombol | Fungsi |
+|---|---|
+| `Ctrl`/`Cmd` + `Z` | Batalkan perubahan terakhir |
+| `Ctrl`/`Cmd` + `Y` atau `Ctrl`+`Shift`+`Z` | Ulangi perubahan yang dibatalkan |
+
+Perubahan yang berdekatan (misalnya mengetik cepat) digabung menjadi satu langkah,
+sehingga satu kali `Ctrl`+`Z` tidak menghapus karakter satu per satu. Riwayat menyimpan
+80 langkah terakhir.
+
+---
+
 ## Pintasan papan tombol
 
 | Tombol | Fungsi |
 |---|---|
 | `Ctrl`/`Cmd` + `Enter` | Perbarui diagram |
+| `Ctrl`/`Cmd` + `Z` | Batalkan perubahan data |
+| `Ctrl`/`Cmd` + `Y` | Ulangi perubahan data |
 | `Tab` | Pindah ke sel berikutnya (mode tabel) |
 | `Enter` / `↑` / `↓` | Pindah baris (mode tabel) |
+| `Ctrl`/`Cmd` + `V` di sebuah sel | Tempel blok data dari Excel mulai dari sel itu |
 
 ---
 
@@ -166,11 +201,12 @@ Aplikasi tidak butuh proses build. Buka `index.html` langsung, atau jalankan ser
 python -m http.server 8080      # lalu buka http://localhost:8080
 ```
 
-Menjalankan uji render (memeriksa seluruh jenis visual terhadap 9 kumpulan data,
-termasuk nilai kosong, negatif, dan format angka Indonesia):
+Menjalankan uji otomatis — 675 pemeriksaan yang mencakup seluruh jenis visual terhadap
+9 kumpulan data (termasuk nilai kosong, negatif, dan format angka Indonesia), pemuatan
+judul, legenda interaktif, serta satuan dan desimal:
 
 ```bash
-node tools/render-test.mjs
+npm test          # atau: node tools/render-test.mjs
 ```
 
 Melihat semua visual sekaligus: buka `tools/galeri.html`.
@@ -185,7 +221,9 @@ kelas CSS). Konsekuensinya, hasil ekspor SVG/PNG tetap tampil benar di luar hala
 ini — misalnya saat ditempel ke dokumen, presentasi, atau diunggah ke media sosial.
 
 Diagram memakai `viewBox` tetap `1000 × 560`, sehingga skalanya tetap tajam di
-ukuran layar mana pun dan saat diekspor.
+ukuran layar mana pun. Saat diekspor, seluruh isi diagram berada dalam satu grup SVG
+yang batasnya bisa diukur — dari situ `viewBox` hasil unduhan dipersempit mengikuti
+isi sebenarnya, sehingga tidak ada ruang kosong berlebih di berkas PNG/SVG.
 
 ---
 
