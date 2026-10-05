@@ -12,7 +12,7 @@ Buka `index.html` untuk mulai memakai.
 
 | | |
 |---|---|
-| **13 jenis visual** | Batang, batang horizontal, garis, area, pie, donat, radar, sebaran, gelembung, peta panas, treemap, gauge, corong |
+| **14 jenis visual** | Batang, batang horizontal, garis, area, pie, donat, radar, sebaran, gelembung, peta panas, treemap, gauge, corong, **tabel** |
 | **Langsung tampil** | Diagram diperbarui begitu data diketik (tanpa tombol) |
 | **Tempel dari Excel** | Salin sel dari Excel / Google Sheets lalu tempel — pemisah Tab, koma, titik koma, dan `\|` dideteksi otomatis. Bisa ditempel ke kotak teks **maupun langsung ke satu sel** di editor tabel |
 | **Editor tabel** | Mode tabel dengan sel yang bisa diedit, tombol tambah/hapus baris & kolom, navigasi Tab/Enter |
@@ -127,9 +127,25 @@ tiga empat, gunakan pilihan **Format angka** untuk memastikan hasilnya.
 | **Treemap** | Komposisi bertingkat menurut ukuran |
 | **Gauge** | Pencapaian terhadap target |
 | **Corong** | Tahapan yang menyusut |
+| **Tabel** | Nilai tepat yang bisa dibaca dan diekspor, bukan perkiraan dari panjang batang |
 
 > Pie, donat, treemap, corong, dan gauge menggunakan **seri pertama** bila data
 > memiliki lebih dari satu seri.
+
+### Visual Tabel
+
+Tabel digambar sebagai SVG seperti visual lain, sehingga bisa diekspor ke PNG atau SVG
+dengan tampilan yang sama persis.
+
+- Judul kolom pertama diambil dari header asli data (mis. `Bulan`), bukan sekadar "Label".
+- Angka ditampilkan **penuh** (`10.560.000`), tidak disingkat menjadi `10,6 jt`.
+- Judul kolom bisa diklik untuk menyembunyikan serinya, sama seperti legenda.
+- Opsi **Baris jumlah (visual Tabel)** menambahkan baris total di bawah; baris ini
+  menghitung seluruh data, termasuk baris yang mungkin tidak ikut tampil.
+- Bila baris terlalu banyak untuk muat di kanvas, tabel menampilkan sebanyak yang muat
+  dan memberi catatan `Menampilkan N dari M baris`. Gunakan tombol **⬇ CSV** untuk
+  memperoleh data lengkap.
+- Karena tinggi kanvas terbatas, tepatnya sekitar 27 baris data bisa tampil sekaligus.
 
 ---
 
@@ -182,7 +198,7 @@ visual/
 │   ├── css/style.css          # tampilan, tema terang & gelap
 │   └── js/
 │       ├── parse.js           # pembaca data, format angka, statistik, skala
-│       ├── charts.js          # mesin gambar 13 visual (SVG murni)
+│       ├── charts.js          # mesin gambar 14 visual (SVG murni)
 │       └── app.js             # antarmuka: input, opsi, ekspor
 ├── tools/
 │   ├── render-test.mjs        # uji otomatis semua jenis visual
@@ -201,9 +217,9 @@ Aplikasi tidak butuh proses build. Buka `index.html` langsung, atau jalankan ser
 python -m http.server 8080      # lalu buka http://localhost:8080
 ```
 
-Menjalankan uji otomatis — 675 pemeriksaan yang mencakup seluruh jenis visual terhadap
+Menjalankan uji otomatis — 722 pemeriksaan yang mencakup seluruh jenis visual terhadap
 9 kumpulan data (termasuk nilai kosong, negatif, dan format angka Indonesia), pemuatan
-judul, legenda interaktif, serta satuan dan desimal:
+judul, legenda interaktif, satuan dan desimal, serta visual Tabel:
 
 ```bash
 npm test          # atau: node tools/render-test.mjs

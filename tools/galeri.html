@@ -20,7 +20,7 @@
 <header class="gal-head">
   <div>
     <h1>Galeri Visual</h1>
-    <p>Semua 13 jenis diagram digambar memakai data yang sama, untuk membandingkan tampilannya.</p>
+    <p>Semua 14 jenis diagram digambar memakai data yang sama, untuk membandingkan tampilannya.</p>
   </div>
   <div style="display:flex;gap:10px;align-items:center">
     <a class="back" href="../index.html">&larr; Kembali ke aplikasi</a>
@@ -64,7 +64,8 @@
     ['heatmap', 'kepadatan', 'Peta panas — pola pada matriks data'],
     ['treemap', 'anggaran', 'Treemap — komposisi menurut ukuran'],
     ['gauge', 'target', 'Gauge — pencapaian terhadap target'],
-    ['funnel', 'funnel', 'Corong — tahapan yang menyusut']
+    ['funnel', 'funnel', 'Corong — tahapan yang menyusut'],
+    ['table', 'penjualan', 'Tabel — nilai tepat, bisa diekspor']
   ];
 
   var dark = false;
@@ -88,7 +89,8 @@
         title: '', xLabel: '', yLabel: '', palette: 'ocean',
         legend: true, values: false, grid: true, smooth: true, anim: true,
         barMode: type === 'area' ? 'stacked' : 'grouped',
-        sort: 'none', numMode: 'auto', stroke: 2.5, dark: dark, theme: tema()
+        sort: 'none', numMode: 'auto', stroke: 2.5, dark: dark, theme: tema(),
+        totals: type === 'table'
       };
       var parsed = P.parseTable(DS[key], 'auto');
       var out;

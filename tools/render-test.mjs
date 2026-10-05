@@ -290,6 +290,49 @@ const OC = C.PALETTES.ocean.colors;
   check('tanpa satuan: tidak ada awalan tambahan', !anyRp);
 }
 
+/* ---------- visual Tabel ---------- */
+function texts(svg) {
+  const out = [];
+  walk(svg, n => { if (n.tagName === 'text') out.push(String(n.textContent)); });
+  return out;
+}
+
+{
+  const parsed = P.parseTable(DATASETS['satu seri'], 'auto');
+  check('tabel: nama kolom label diambil dari header', parsed.labelName === 'Kategori', parsed.labelName);
+
+  const t = texts(C.render('table', P.applyOptions(parsed, opts({})), opts({})).svg);
+  check('tabel: kepala memakai nama kolom asli', t.indexOf('Kategori') > -1, t.slice(0, 3).join(' | '));
+  check('tabel: nama seri jadi judul kolom', t.indexOf('Nilai') > -1);
+  check('tabel: nilai tiap baris tampil', t.indexOf('42') > -1 && t.indexOf('64') > -1 && t.indexOf('Epsilon') > -1);
+
+  const tt = texts(C.render('table', P.applyOptions(parsed, opts({ totals: true })), opts({ totals: true })).svg);
+  check('tabel: baris jumlah muncul', tt.indexOf('Jumlah') > -1);
+  check('tabel: jumlah dihitung benar (42+58+71+35+64=270)', tt.indexOf('270') > -1);
+
+  const tanpa = texts(C.render('table', P.applyOptions(parsed, opts({})), opts({})).svg);
+  check('tabel: tanpa opsi jumlah tidak ada baris jumlah', tanpa.indexOf('Jumlah') === -1);
+}
+
+{
+  // angka besar harus tampil penuh, bukan disingkat
+  const big = P.parseTable('Kota\tPopulasi\nJakarta\t10560000\nBandung\t2507000', 'auto');
+  const t = texts(C.render('table', P.applyOptions(big, opts({})), opts({})).svg);
+  check('tabel: angka besar tampil penuh', t.indexOf('10.560.000') > -1, t.join(' | '));
+  check('tabel: tidak memakai bentuk ringkas', t.indexOf('10,6 jt') === -1);
+}
+
+{
+  // data panjang dipotong dengan pemberitahuan
+  let raw = 'Hari\tNilai\n';
+  for (let i = 1; i <= 80; i++) raw += 'H' + i + '\t' + i * 3 + '\n';
+  const many = P.parseTable(raw, 'auto');
+  const t = texts(C.render('table', P.applyOptions(many, opts({})), opts({})).svg);
+  const note = t.find(x => x.indexOf('Menampilkan') === 0);
+  check('tabel: baris berlebih dipotong dengan pemberitahuan', !!note, note || 'tidak ada catatan');
+  check('tabel: batas baris masuk akal', !!note && /Menampilkan (\d+) dari 80/.test(note) && Number(note.match(/Menampilkan (\d+)/)[1]) >= 10, note || '');
+}
+
 /* ---------- hasil ---------- */
 console.log('\n' + '='.repeat(58));
 console.log(`  LULUS: ${pass}   GAGAL: ${fail}`);

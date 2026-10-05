@@ -303,6 +303,8 @@
     result.series = series;
     result.matrix = matrix;
     result.headerRow = headerRow;
+    // Nama kolom label diambil dari judul aslinya bila ada (mis. "Bulan").
+    result.labelName = (headerRow && matrix[0][0]) ? matrix[0][0] : 'Label';
     result.delimiter = delim;
     return result;
   }
@@ -380,7 +382,7 @@
       if (xValues) xValues = order.map(function (i) { return xValues[i]; });
     }
 
-    return { labels: labels, series: series, xValues: xValues, warnings: data.warnings || [] };
+    return { labels: labels, series: series, xValues: xValues, labelName: data.labelName || 'Label', warnings: data.warnings || [] };
   }
 
   /** Ambil maksimum/minimum seluruh seri. */

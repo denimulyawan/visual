@@ -387,6 +387,12 @@
     return P.formatCompact(v);
   }
 
+  /** Format penuh tanpa penyingkatan — dipakai di dalam tabel. */
+  function fullFmt(v) {
+    if (CUR && CUR.fmt && CUR.fmt.full) return CUR.fmt.full(v);
+    return P.formatNumber(v);
+  }
+
   /** Warna seri selalu mengikuti indeks aslinya (ci), bukan urutan tampil,
       supaya warna tidak berpindah saat ada seri yang disembunyikan. */
   function colorOf(s, i, opts) {
@@ -1149,6 +1155,163 @@
   }
 
   /* ============================================================
+     TABEL
+     ============================================================ */
+  function ellipsize(s, maxPx, perChar) {
+    var str = String(s === null || s === undefined ? '' : s);
+    var max = Math.max(1, Math.floor(maxPx / perChar));
+    return str.length > max ? str.slice(0, Math.max(1, max - 1)) + '…' : str;
+  }
+
+  function chartTable(data, opts) {
+    var labels = data.labels, series = data.series;
+    var showTotals = opts.totals === true;
+    var f = frame(opts, null, { left: 28, right: 28, bottom: 30, top: 2 });
+    var p = f.plot, th = f.theme;
+    var n = labels.length, m = series.length;
+
+    var headerH = 34;
+    var rowBudget = p.h - headerH;
+    var maxData = Math.max(1, Math.floor(rowBudget / 18) - (showTotals ? 1 : 0));
+    var shown = Math.min(n, maxData);
+    var rowCount = shown + (showTotals ? 1 : 0);
+    var rowH = Math.min(46, rowBudget / Math.max(1, rowCount));
+    var blockH = headerH + rowCount * rowH;
+    var y0 = p.y + Math.max(0, (p.h - blockH) / 2);
+
+    // lebar kolom
+    var labelW = 96;
+    for (var i = 0; i < shown; i++) labelW = Math.max(labelW, String(labels[i]).length * 7.4 + 28);
+    labelW = Math.min(labelW, Math.max(120, p.w * 0.4));
+    var colW = (p.w - labelW) / Math.max(1, m);
+
+    // bingkai
+    add(f.svg, 'rect', {
+      x: num(p.x), y: num(y0), width: num(p.w), height: num(blockH), rx: 10,
+      fill: th.surface, stroke: th.borderStrong, 'stroke-width': 1
+    });
+    // kepala tabel (latar penuh, sudut atas membulat)
+    add(f.svg, 'rect', {
+      x: num(p.x), y: num(y0), width: num(p.w), height: headerH, rx: 10, fill: th.surface3
+    });
+    add(f.svg, 'rect', {
+      x: num(p.x), y: num(y0 + headerH - 12), width: num(p.w), height: 12, fill: th.surface3
+    });
+    add(f.svg, 'line', {
+      x1: num(p.x), x2: num(p.x + p.w), y1: num(y0 + headerH), y2: num(y0 + headerH),
+      stroke: th.borderStrong, 'stroke-width': 1.4
+    });
+
+    // judul kolom
+    txt(f.svg, num(p.x + 14), num(y0 + headerH / 2 + 4.5), ellipsize(data.labelName || 'Label', labelW - 24, 7.4), {
+      'font-size': 12.5, 'font-weight': 700, fill: th.text2
+    });
+    for (var c = 0; c < m; c++) {
+      var cxRight = p.x + labelW + colW * c + colW - 12;
+      var color = colorOf(series[c], c, opts);
+      var label = ellipsize(series[c].name, colW - 30, 7.2);
+      var tw = label.length * 7.2;
+      // Judul kolom bisa diklik untuk menyembunyikan serinya (sama seperti legenda).
+      var hg = add(f.svg, 'g', {
+        'data-series': (series[c].ci !== undefined ? series[c].ci : c),
+        style: 'cursor:pointer'
+      });
+      var ht = add(hg, 'title', {});
+      ht.textContent = 'Klik untuk menyembunyikan ' + series[c].name;
+      add(hg, 'rect', {
+        x: num(cxRight - tw - 20), y: num(y0 + headerH / 2 - 5.5),
+        width: 11, height: 11, rx: 3, fill: color
+      });
+      txt(hg, num(cxRight), num(y0 + headerH / 2 + 4.5), label, {
+        'text-anchor': 'end', 'font-size': 12.5, 'font-weight': 700, fill: th.text2
+      });
+      add(hg, 'rect', {
+        x: num(p.x + labelW + colW * c + 2), y: num(y0 + 4),
+        width: num(Math.max(1, colW - 4)), height: num(headerH - 8), fill: 'transparent'
+      });
+    }
+
+    // pemisah kolom
+    if (colW > 76) {
+      for (var s = 1; s < m; s++) {
+        var sx = p.x + labelW + colW * s;
+        add(f.svg, 'line', {
+          x1: num(sx), x2: num(sx), y1: num(y0 + headerH), y2: num(y0 + blockH),
+          stroke: th.border, 'stroke-width': 1
+        });
+      }
+    }
+
+    // baris data
+    for (var r = 0; r < shown; r++) {
+      var ry = y0 + headerH + r * rowH;
+      if (r % 2 === 1) {
+        add(f.svg, 'rect', {
+          x: num(p.x + 1), y: num(ry), width: num(p.w - 2), height: num(rowH), fill: th.surface2
+        });
+      }
+      if (r > 0) {
+        add(f.svg, 'line', {
+          x1: num(p.x + 1), x2: num(p.x + p.w - 1), y1: num(ry), y2: num(ry),
+          stroke: th.border, 'stroke-width': 1
+        });
+      }
+      var baseY = ry + rowH / 2 + 4.5;
+      txt(f.svg, num(p.x + 14), num(baseY), ellipsize(labels[r], labelW - 24, 7.4), {
+        'font-size': 12.5, fill: th.text
+      });
+      for (var j = 0; j < m; j++) {
+        var v = series[j].values[r];
+        var cellX = p.x + labelW + colW * j;
+        var isNum = typeof v === 'number' && isFinite(v);
+        txt(f.svg, num(cellX + colW - 12), num(baseY), isNum ? ellipsize(fullFmt(v), colW - 22, 7.2) : '–', {
+          'text-anchor': 'end', 'font-size': 12.5, fill: isNum ? th.text : th.text3
+        });
+        var hit = add(f.svg, 'rect', {
+          x: num(cellX + 1), y: num(ry), width: num(Math.max(1, colW - 2)), height: num(rowH), fill: 'transparent'
+        });
+        if (isNum) {
+          hit.setAttribute('data-tip', tip(labels[r], series[j].name, fullFmt(v)));
+          hit.style.cursor = 'crosshair';
+        }
+      }
+    }
+
+    // baris jumlah
+    if (showTotals) {
+      var ty = y0 + headerH + shown * rowH;
+      add(f.svg, 'rect', {
+        x: num(p.x + 1), y: num(ty), width: num(p.w - 2), height: num(rowH), fill: th.surface3
+      });
+      add(f.svg, 'line', {
+        x1: num(p.x), x2: num(p.x + p.w), y1: num(ty), y2: num(ty),
+        stroke: th.borderStrong, 'stroke-width': 1.4
+      });
+      var tBase = ty + rowH / 2 + 4.5;
+      txt(f.svg, num(p.x + 14), num(tBase), 'Jumlah', { 'font-size': 12.5, 'font-weight': 700, fill: th.text });
+      for (var k = 0; k < m; k++) {
+        var sum = 0, counted = 0;
+        for (var q2 = 0; q2 < n; q2++) {
+          var vv = series[k].values[q2];
+          if (typeof vv === 'number' && isFinite(vv)) { sum += vv; counted++; }
+        }
+        var cellX2 = p.x + labelW + colW * k;
+        txt(f.svg, num(cellX2 + colW - 12), num(tBase), counted ? ellipsize(fullFmt(sum), colW - 22, 7.2) : '–', {
+          'text-anchor': 'end', 'font-size': 12.5, 'font-weight': 700, fill: th.text
+        });
+      }
+    }
+
+    if (shown < n) {
+      txt(f.svg, p.x + 2, num(y0 + blockH + 18),
+        'Menampilkan ' + shown + ' dari ' + n + ' baris — sisanya dipotong agar muat. Gunakan CSV untuk data lengkap.',
+        { 'font-size': 11.5, fill: th.text3 });
+    }
+
+    return { svg: f.svg, name: 'Tabel' + (showTotals ? ' (dengan jumlah)' : '') };
+  }
+
+  /* ============================================================
      REGISTRI & API
      ============================================================ */
   var RENDERERS = {
@@ -1164,7 +1327,8 @@
     heatmap: chartHeatmap,
     treemap: chartTreemap,
     gauge: chartGauge,
-    funnel: chartFunnel
+    funnel: chartFunnel,
+    table: chartTable
   };
 
   var TYPES = [
@@ -1180,7 +1344,8 @@
     { id: 'heatmap', name: 'Peta Panas', icon: '▦', hint: 'Pola pada matriks data' },
     { id: 'treemap', name: 'Treemap', icon: '▤', hint: 'Komposisi bertingkat' },
     { id: 'gauge', name: 'Gauge', icon: '◐', hint: 'Pencapaian terhadap target' },
-    { id: 'funnel', name: 'Corong', icon: '▽', hint: 'Tahapan yang menyusut' }
+    { id: 'funnel', name: 'Corong', icon: '▽', hint: 'Tahapan yang menyusut' },
+    { id: 'table', name: 'Tabel', icon: '☰', hint: 'Nilai tepat dalam bentuk tabel' }
   ];
 
   function render(type, data, opts) {

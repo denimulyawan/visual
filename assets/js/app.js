@@ -38,7 +38,7 @@
       title: '', xLabel: '', yLabel: '',
       palette: 'ocean', legend: true, values: false, grid: true,
       smooth: true, anim: true, barMode: 'grouped', sort: 'none', numMode: 'auto', stroke: 2.5,
-      decimals: 'auto', prefix: '', suffix: '', crop: true
+      decimals: 'auto', prefix: '', suffix: '', crop: true, totals: false
     },
     hidden: []
   };
@@ -208,7 +208,8 @@
     }
     return {
       value: wrap(function (v) { return body(v, false); }),
-      tick: wrap(function (v) { return body(v, true); })
+      tick: wrap(function (v) { return body(v, true); }),
+      full: wrap(function (v) { return dec !== null ? P.formatNumber(v, { decimals: dec }) : P.formatNumber(v); })
     };
   }
 
@@ -219,7 +220,7 @@
       title: o.title, xLabel: o.xLabel, yLabel: o.yLabel,
       palette: o.palette, legend: o.legend, values: o.values, grid: o.grid,
       smooth: o.smooth, anim: o.anim, barMode: o.barMode, sort: o.sort,
-      numMode: o.numMode, stroke: o.stroke,
+      numMode: o.numMode, stroke: o.stroke, totals: o.totals === true,
       dark: state.theme === 'dark',
       theme: readTheme(),
       fmt: makeFmt(o)
@@ -289,7 +290,10 @@
     }
     empty.hidden = true;
 
-    var data = { labels: full.labels, xValues: full.xValues, series: visible, legend: legend, warnings: full.warnings };
+    var data = {
+      labels: full.labels, xValues: full.xValues, series: visible,
+      legend: legend, labelName: full.labelName || 'Label', warnings: full.warnings
+    };
     var out;
     try {
       out = C.render(state.type, data, opts);
@@ -342,7 +346,7 @@
     if (!d || !d.series.length) { wrap.innerHTML = '<div class="status">Belum ada data.</div>'; return; }
     var fmt = makeFmt(state.opts);
     var colors = C.paletteColors(state.opts.palette, state.theme === 'dark');
-    var head = ['Label'].concat(d.series.map(function (s, i) {
+    var head = [d.labelName || 'Label'].concat(d.series.map(function (s, i) {
       return '<span class="swatch" style="background:' + colors[i % colors.length] + '"></span>' + escapeHtml(s.name);
     }));
     var html = '<table><thead><tr>' + head.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>';
@@ -697,7 +701,7 @@
       state.opts.suffix = this.value; renderChart(); renderStats(); renderPreview(); save();
     });
     $('#optCrop').addEventListener('change', function () { state.opts.crop = this.checked; save(); });
-    ['legend', 'values', 'grid', 'smooth', 'anim'].forEach(function (k) {
+    $('#optTotals').addEventListener('change', function () { state.opts.totals = this.checked; renderChart(); save(); });    ['legend', 'values', 'grid', 'smooth', 'anim'].forEach(function (k) {
       var el = $('#opt' + k.charAt(0).toUpperCase() + k.slice(1));
       el.addEventListener('change', function () { state.opts[k] = this.checked; renderChart(); save(); });
     });
@@ -722,6 +726,7 @@
     $('#optPrefix').value = o.prefix || '';
     $('#optSuffix').value = o.suffix || '';
     $('#optCrop').checked = o.crop !== false;
+    $('#optTotals').checked = o.totals === true;
     $('#optLegend').checked = o.legend;
     $('#optValues').checked = o.values;
     $('#optGrid').checked = o.grid;

@@ -2,7 +2,7 @@
   "name": "visual",
   "version": "1.0.0",
   "private": true,
-  "description": "Ubah data angka menjadi diagram secara instan — 13 jenis visual, tanpa dependensi.",
+  "description": "Ubah data angka menjadi diagram secara instan — 14 jenis visual, tanpa dependensi.",
   "homepage": "https://denimulyawan.github.io/visual/",
   "repository": {
     "type": "git",
